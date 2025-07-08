@@ -1,7 +1,32 @@
-import { z } from "astro:content";
+import { glob } from "astro/loaders";
+import { getCollection, z } from "astro:content";
 import { defineCollection } from "astro:content";
 import puppeteer from "puppeteer";
 const meetups = ["edinburghjs"];
+
+export async function getAllPosts(): Promise<MeetupEvent[]> {
+  const markdownPosts = await getCollection("mdEvents");
+  const apiPosts = await getCollection("events");
+
+  return [
+    {
+      id: "md",
+      events: markdownPosts.map((m) => ({ ...m.data })),
+    },
+    ...apiPosts.map((p) => p.data),
+  ];
+}
+
+const MarkdownEventSchema = z.object({
+  title: z.string(),
+  link: z.string(),
+  time: z.string(),
+});
+
+const mdEvents = defineCollection({
+  loader: glob({ pattern: "**/*.md", base: "./src/content/events" }),
+  schema: MarkdownEventSchema,
+});
 
 const EventSchema = z.object({
   id: z.string(),
@@ -81,4 +106,4 @@ const events = defineCollection({
   schema: EventSchema,
 });
 
-export const collections = { events };
+export const collections = { events, mdEvents };

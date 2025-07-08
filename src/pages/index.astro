@@ -1,19 +1,22 @@
 ---
-import { getEntry } from "astro:content";
+import { getAllPosts } from "../content.config";
 import Layout from "../layouts/Layout.astro";
-const events = await getEntry("events", "edinburghjs");
-console.log(events);
+const events = await getAllPosts();
 ---
 
 <Layout>
   <h1>Les Evènements sur Lille</h1>
   <ul>
     {
-      events?.data.events.map((event) => (
-        <li>
-          <a href={event.link}>{event.title}</a>
-        </li>
-      ))
+      events?.map((e) => {
+        return e.events?.map((event: any) => {
+          return (
+            <li>
+              <a href={event.link}>{event.title}</a>
+            </li>
+          );
+        });
+      })
     }
   </ul>
 </Layout>
