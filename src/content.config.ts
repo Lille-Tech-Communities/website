@@ -1,6 +1,7 @@
 import { z } from "astro:content";
 import { defineCollection } from "astro:content";
 import puppeteer from "puppeteer";
+const meetups = ["edinburghjs"];
 
 const EventSchema = z.object({
   id: z.string(),
@@ -67,7 +68,6 @@ const events = defineCollection({
     }
 
     let data: MeetupEvent[] = [];
-    const meetups = ["edinburghjs"];
     for (let i = 0; i < meetups.length; i++) {
       const events = await scrapeMeetupEvents(meetups[i]);
       data.push({ id: `${meetups[i]}`, events });
