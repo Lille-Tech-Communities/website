@@ -20,7 +20,8 @@ export async function getAllPosts(): Promise<MeetupEvent[]> {
 const MarkdownEventSchema = z.object({
   title: z.string(),
   link: z.string(),
-  time: z.string(),
+  time: z.string().or(z.date()),
+  endTime: z.string().or(z.date()).optional(),
 });
 
 const mdEvents = defineCollection({
@@ -34,7 +35,8 @@ const EventSchema = z.object({
     z.object({
       title: z.string(),
       link: z.string(),
-      time: z.string(),
+      time: z.string().or(z.date()),
+      endTime: z.string().or(z.date()).optional(),
     })
   ),
 });
