@@ -1,13 +1,84 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+const meetups = [
+  {
+    href: "https://www.meetup.com/fr-FR/mtg-lille/",
+    label: "MTG",
+  },
+  {
+    href: "https://www.meetup.com/fr-FR/devops-lille/",
+    label: "DevOps Lille",
+  },
+  {
+    href: "https://www.meetup.com/fr-FR/chtijug/",
+    label: "Ch'ti JUG",
+  },
+  {
+    href: "https://www.linkedin.com/company/chtitedev/",
+    label: "Chtitedev",
+  },
+  {
+    href: "https://www.meetup.com/fr-FR/Lille-Big-Data-and-Machine-Learning-Meetup/",
+    label: "Data Lille",
+  },
+  {
+    href: "https://linktr.ee/frontendbeers",
+    label: "Frontendbeers",
+  },
+  {
+    href: "https://www.linkedin.com/company/software-craft-lille/",
+    label: "Software Craft Lille",
+  },
+  {
+    href: "https://www.linkedin.com/company/meetup-postgresql-lille/",
+    label: "Meetup PostgreSQL Lille",
+  },
+  {
+    href: "https://www.meetup.com/fr-fr/lille-android-user-group/",
+    label: "Lille Android User Group",
+  },
+  {
+    href: "https://www.meetup.com/fr-FR/networking-it-reseau-et-opportunite-data-cloud-dev-etc/",
+    label: "IT-Club",
+  },
+];
 ---
 
 <Layout>
-  <iframe
-    src="https://calendar.google.com/calendar/embed?src=ou9964nmfjihihgt464pqgrab6tce6vb%40import.calendar.google.com&ctz=Europe%2FParis"
-    style="border: 0"
-    width="100%"
-    height="100%"
-    frameborder="0"
-    scrolling="no"></iframe>
+  <div
+    class="via-white to-pink-100 min-h-screen flex items-center justify-center p-4"
+  >
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 text-center">
+      <!-- Logo / Avatar -->
+      <img
+        src="/logo.jpeg"
+        alt="Logo Meetup Lille"
+        class="w-24 h-24 mx-auto rounded-full border-4 border-white shadow-md"
+      />
+
+      <!-- Titre -->
+      <h1 class="mt-4 text-2xl font-bold text-gray-800">
+        Meetup Lille Communities
+      </h1>
+      <p class="text-gray-500 text-sm mt-1">
+        Les communautés tech de la métropole lilloise
+      </p>
+
+      <!-- Liens -->
+      <div class="mt-6 space-y-4">
+        {
+          meetups.map((meetup) => (
+            <a
+              href={meetup.href}
+              target="_blank"
+              class="block w-full text-center px-4 py-3 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 font-medium transition"
+            >
+              {meetup.label}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
 </Layout>
