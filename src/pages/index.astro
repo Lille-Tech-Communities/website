@@ -1,5 +1,11 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+
+const mailinglists = await getCollection("mailinglists");
+const sortedMailinglists = mailinglists
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .slice(0, 10);
 
 const meetups = [
   {
@@ -49,35 +55,84 @@ const meetups = [
   <div
     class="via-white to-pink-100 min-h-screen flex items-center justify-center p-4"
   >
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 text-center">
-      <!-- Logo / Avatar -->
-      <img
-        src="/logo.jpeg"
-        alt="Logo Meetup Lille"
-        class="w-24 h-24 mx-auto rounded-full border-4 border-white shadow-md"
-      />
+    <div class="w-full max-w-4xl">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <img
+          src="/logo.jpeg"
+          alt="Logo Meetup Lille"
+          class="w-24 h-24 mx-auto rounded-full border-4 border-white shadow-md"
+        />
+        <h1 class="mt-4 text-2xl font-bold text-gray-800">
+          Meetup Lille Communities
+        </h1>
+        <p class="text-gray-500 text-sm mt-1">
+          Les communautés tech de la métropole lilloise
+        </p>
+      </div>
 
-      <!-- Titre -->
-      <h1 class="mt-4 text-2xl font-bold text-gray-800">
-        Meetup Lille Communities
-      </h1>
-      <p class="text-gray-500 text-sm mt-1">
-        Les communautés tech de la métropole lilloise
-      </p>
+      <!-- Contenu en deux colonnes -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Colonne Meetups -->
+        <section class="bg-white rounded-2xl shadow-xl p-6" aria-labelledby="communities-heading">
+          <h2 id="communities-heading" class="text-xl font-bold text-gray-800 mb-4 text-center">Communautés</h2>
+          <nav aria-label="Liste des communautés tech">
+            <ul class="space-y-4" role="list">
+              {
+                meetups.map((meetup) => (
+                  <li>
+                    <a
+                      href={meetup.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Visiter la page de ${meetup.label} (nouvelle fenêtre)`}
+                      class="block w-full text-center px-4 py-3 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      {meetup.label}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+        </section>
 
-      <!-- Liens -->
-      <div class="mt-6 space-y-4">
-        {
-          meetups.map((meetup) => (
-            <a
-              href={meetup.href}
-              target="_blank"
-              class="block w-full text-center px-4 py-3 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 font-medium transition"
-            >
-              {meetup.label}
-            </a>
-          ))
-        }
+        <!-- Colonne Mailing List -->
+        <section class="bg-white rounded-2xl shadow-xl p-6" aria-labelledby="mailinglist-heading">
+          <h2 id="mailinglist-heading" class="text-xl font-bold text-gray-800 mb-4 text-center">Mailing List</h2>
+          <ul class="space-y-3 text-left" role="list" aria-label="Dernières mailing lists">
+            {
+              sortedMailinglists.map((mail) => (
+                <li>
+                  <a
+                    href={`/mailinglists/${mail.id}`}
+                    class="block p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    aria-label={`Lire la mailing list : ${mail.data.title}`}
+                  >
+                    <time class="text-sm text-gray-500" datetime={new Date(mail.data.date).toISOString()}>
+                      {new Date(mail.data.date).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </time>
+                    <div class="font-medium text-gray-800">{mail.data.title}</div>
+                    {mail.data.description && (
+                      <p class="text-sm text-gray-600 mt-1">{mail.data.description}</p>
+                    )}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+          <a
+            href="/mailinglists"
+            class="inline-block mt-4 text-gray-600 hover:text-gray-800 font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            aria-label="Voir toutes les mailing lists"
+          >
+            Voir toutes les mailing lists <span aria-hidden="true">&rarr;</span>
+          </a>
+        </section>
       </div>
     </div>
   </div>

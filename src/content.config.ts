@@ -37,7 +37,7 @@ const EventSchema = z.object({
       link: z.string(),
       time: z.string().or(z.date()),
       endTime: z.string().or(z.date()).optional(),
-    })
+    }),
   ),
 });
 export type MeetupEvent = Required<z.infer<typeof EventSchema>>;
@@ -62,24 +62,24 @@ const events = defineCollection({
           'a[href^="https://www.meetup.com/' + meetup + '/events/"]',
           {
             timeout: 20000,
-          }
+          },
         );
       } catch (err) {
         console.warn(
-          "⚠️ Aucun événement visible sur la page (ou chargement trop lent)."
+          "⚠️ Aucun événement visible sur la page (ou chargement trop lent).",
         );
         await browser.close();
         return [];
       }
       const events = await page.evaluate((meetup: string) => {
         const cards = document.querySelectorAll(
-          'a[href^="https://www.meetup.com/' + meetup + '/events/"]'
+          'a[href^="https://www.meetup.com/' + meetup + '/events/"]',
         );
 
         return Array.from(cards)
           .filter((card) => {
             return !["Events", "List", "Calendar", "Upcoming"].includes(
-              (card as HTMLLinkElement).innerText?.trim()
+              (card as HTMLLinkElement).innerText?.trim(),
             );
           })
           .map((card, i) => {
@@ -108,4 +108,15 @@ const events = defineCollection({
   schema: EventSchema,
 });
 
-export const collections = { events, mdEvents };
+const MailingListSchema = z.object({
+  title: z.string(),
+  date: z.string().or(z.date()),
+  description: z.string().optional(),
+});
+
+const mailinglists = defineCollection({
+  loader: glob({ pattern: "**/*.md", base: "./src/content/mailinglists" }),
+  schema: MailingListSchema,
+});
+
+export const collections = { events, mdEvents, mailinglists };
