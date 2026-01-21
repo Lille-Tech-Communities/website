@@ -4,10 +4,15 @@ import { defineCollection } from "astro:content";
 import puppeteer from "puppeteer";
 
 const meetups: Record<string, string> = {
+  "software-craftsmanship-lille": "Software Craftsmanship Lille",
   chtijug: "Ch'ti JUG",
   reactbeerlille: "React Beer Lille",
   "lille-aws-amazon-web-services-user-group": "Lille AWS User Group",
 };
+
+const mobilizonGroups: { url: string; name: string }[] = [
+  { url: "https://mobilizon.fr/@chtitedev", name: "Ch'tite Dev" },
+];
 
 export async function getAllPosts(): Promise<MeetupEvent[]> {
   const markdownPosts = await getCollection("mdEvents");
@@ -50,6 +55,101 @@ const EventSchema = z.object({
   ),
 });
 export type MeetupEvent = Required<z.infer<typeof EventSchema>>;
+
+async function scrapeMobilizonEvents(
+  browser: Awaited<ReturnType<typeof puppeteer.launch>>,
+  groupUrl: string,
+  groupName: string,
+): Promise<{ title: string; link: string; time: string; meetup: string }[]> {
+  const page = await browser.newPage();
+
+  try {
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    );
+
+    await page.goto(`${groupUrl}/events`, {
+      waitUntil: "networkidle2",
+      timeout: 90000,
+    });
+
+    // Attendre que les événements soient chargés
+    await page
+      .waitForSelector("a[href*='/events/']", { timeout: 30000 })
+      .catch(() => {
+        console.log(
+          `⏳ Pas d'événements trouvés pour ${groupName}, on continue...`,
+        );
+      });
+
+    const events = await page.evaluate((groupName: string) => {
+      const eventLinks = document.querySelectorAll("a[href*='/events/']");
+      const results: {
+        title: string;
+        link: string;
+        time: string;
+        meetup: string;
+      }[] = [];
+      const seenLinks = new Set<string>();
+
+      eventLinks.forEach((link) => {
+        const href = (link as HTMLAnchorElement).href;
+
+        // Filtrer les liens qui ne sont pas des événements individuels
+        if (!href.match(/\/events\/[a-f0-9-]+$/)) return;
+        if (seenLinks.has(href)) return;
+        seenLinks.add(href);
+
+        // Chercher le titre dans le lien ou ses enfants
+        const titleElement = link.querySelector("h3, h4, [class*='title']");
+        let title = titleElement?.textContent?.trim() || "";
+
+        if (!title) {
+          // Essayer de trouver le titre dans le texte du lien
+          const text = link.textContent?.trim() || "";
+          const lines = text
+            .split("\n")
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0);
+          title = lines[0] || "";
+        }
+
+        // Chercher la date - Mobilizon utilise <time> avec datetime
+        const timeElement =
+          link.closest("div")?.querySelector("time") ||
+          link.parentElement?.querySelector("time") ||
+          link.querySelector("time");
+        let time = timeElement?.getAttribute("datetime") || "";
+
+        if (!time) {
+          // Chercher dans les éléments parents
+          let parent = link.parentElement;
+          for (let i = 0; i < 5 && parent; i++) {
+            const timeEl = parent.querySelector("time");
+            if (timeEl) {
+              time = timeEl.getAttribute("datetime") || "";
+              break;
+            }
+            parent = parent.parentElement;
+          }
+        }
+
+        if (title && time) {
+          results.push({ title, link: href, time, meetup: groupName });
+        }
+      });
+
+      return results;
+    }, groupName);
+
+    await page.close();
+    return events;
+  } catch (err) {
+    console.warn(`⚠️ Erreur scraping Mobilizon ${groupName}:`, err);
+    await page.close().catch(() => {});
+    return [];
+  }
+}
 
 const events = defineCollection({
   loader: async () => {
@@ -165,6 +265,24 @@ const events = defineCollection({
         const scrapedEvents = await scrapeMeetupEvents(slug, name);
         data.push({ id: slug, events: scrapedEvents });
         console.log(`✅ ${name}:`, scrapedEvents.length, "événement(s)");
+      }
+
+      // Scrape Mobilizon events (using the same browser)
+      for (const group of mobilizonGroups) {
+        console.log(`🔍 Scraping Mobilizon ${group.name}...`);
+        const mobilizonEvents = await scrapeMobilizonEvents(
+          browser,
+          group.url,
+          group.name,
+        );
+        const groupId =
+          group.url.split("/").pop()?.replace("@", "") || group.name;
+        data.push({ id: `mobilizon-${groupId}`, events: mobilizonEvents });
+        console.log(
+          `✅ ${group.name}:`,
+          mobilizonEvents.length,
+          "événement(s)",
+        );
       }
 
       await browser.close();

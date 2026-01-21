@@ -34,15 +34,9 @@ const now = new Date();
 const currentMonth = now.getMonth();
 const currentYear = now.getFullYear();
 
-const currentMonthEvents = allEvents
-    .filter((event) => {
-        const eventDate = new Date(event.time);
-        return (
-            eventDate.getMonth() === currentMonth &&
-            eventDate.getFullYear() === currentYear
-        );
-    })
-    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+const sortedEvents = allEvents.sort(
+    (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+);
 
 const meetups = [
     {
@@ -146,80 +140,218 @@ const meetups = [
                 <section
                     class="bg-white rounded-2xl shadow-xl p-6"
                     aria-labelledby="events-heading"
+                    id="events-section"
                 >
-                    <h2
-                        id="events-heading"
-                        class="text-xl font-bold text-gray-800 mb-4 text-center"
-                    >
-                        Événements de{" "}
-                        {
-                            now.toLocaleDateString("fr-FR", {
-                                month: "long",
-                                year: "numeric",
-                            })
-                        }
-                    </h2>
-                    {
-                        currentMonthEvents.length > 0 ? (
-                            <ul
-                                class="space-y-3"
-                                role="list"
-                                aria-label="Événements du mois"
+                    <div class="flex items-center justify-between mb-4">
+                        <button
+                            id="prev-month"
+                            type="button"
+                            aria-label="Mois précédent"
+                            class="p-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
                             >
-                                {currentMonthEvents.map((event) => (
-                                    <li>
-                                        <a
-                                            href={event.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="block p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                                            aria-label={`Voir l'événement : ${event.title} (nouvelle fenêtre)`}
-                                        >
-                                            <div class="flex items-center justify-between">
-                                                <time
-                                                    class="text-sm text-gray-500"
-                                                    datetime={new Date(
-                                                        event.time,
-                                                    ).toISOString()}
-                                                >
-                                                    {new Date(
-                                                        event.time,
-                                                    ).toLocaleDateString(
-                                                        "fr-FR",
-                                                        {
-                                                            weekday: "long",
-                                                            day: "numeric",
-                                                            month: "long",
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        },
-                                                    )}
-                                                </time>
-                                                {event.meetup && (
-                                                    <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                                                        {event.meetup}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div class="font-medium text-gray-800 mt-1">
-                                                {event.title}
-                                            </div>
-                                            {event.speaker && (
-                                                <div class="text-sm text-gray-600 mt-1">
-                                                    Par {event.speaker}
-                                                </div>
-                                            )}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p class="text-gray-500 text-center">
-                                Aucun événement ce mois-ci
-                            </p>
-                        )
-                    }
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                        <h2
+                            id="events-heading"
+                            class="text-xl font-bold text-gray-800 text-center"
+                        >
+                            Événements de <span id="current-month-label"
+                                >{
+                                    now.toLocaleDateString("fr-FR", {
+                                        month: "long",
+                                        year: "numeric",
+                                    })
+                                }</span
+                            >
+                        </h2>
+                        <button
+                            id="next-month"
+                            type="button"
+                            aria-label="Mois suivant"
+                            class="p-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <ul
+                        class="space-y-3"
+                        role="list"
+                        aria-label="Événements du mois"
+                        id="events-list"
+                    >
+                    </ul>
+                    <p
+                        id="no-events-message"
+                        class="text-gray-500 text-center hidden"
+                    >
+                        Aucun événement ce mois-ci
+                    </p>
                 </section>
+                <script
+                    define:vars={{ sortedEvents, currentMonth, currentYear }}
+                >
+                    const events = sortedEvents;
+                    let displayMonth = currentMonth;
+                    let displayYear = currentYear;
+                    const minMonth = currentMonth;
+                    const minYear = currentYear;
+
+                    function formatDate(dateStr) {
+                        const date = new Date(dateStr);
+                        return date.toLocaleDateString("fr-FR", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        });
+                    }
+
+                    function formatMonthLabel(month, year) {
+                        const date = new Date(year, month, 1);
+                        return date.toLocaleDateString("fr-FR", {
+                            month: "long",
+                            year: "numeric",
+                        });
+                    }
+
+                    function renderEvents() {
+                        const filteredEvents = events.filter((event) => {
+                            const eventDate = new Date(event.time);
+                            return (
+                                eventDate.getMonth() === displayMonth &&
+                                eventDate.getFullYear() === displayYear
+                            );
+                        });
+
+                        const eventsList =
+                            document.getElementById("events-list");
+                        const noEventsMessage =
+                            document.getElementById("no-events-message");
+                        const monthLabel = document.getElementById(
+                            "current-month-label",
+                        );
+                        const prevButton =
+                            document.getElementById("prev-month");
+
+                        monthLabel.textContent = formatMonthLabel(
+                            displayMonth,
+                            displayYear,
+                        );
+
+                        // Disable prev button if at minimum month
+                        const isAtMinMonth =
+                            displayMonth === minMonth &&
+                            displayYear === minYear;
+                        prevButton.disabled = isAtMinMonth;
+
+                        if (filteredEvents.length === 0) {
+                            eventsList.innerHTML = "";
+                            noEventsMessage.classList.remove("hidden");
+                        } else {
+                            noEventsMessage.classList.add("hidden");
+                            eventsList.innerHTML = filteredEvents
+                                .map(
+                                    (event) => `
+                                <li>
+                                    <a
+                                        href="${event.link}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="block p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                        aria-label="Voir l'événement : ${event.title} (nouvelle fenêtre)"
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <time
+                                                class="text-sm text-gray-500"
+                                                datetime="${new Date(event.time).toISOString()}"
+                                            >
+                                                ${formatDate(event.time)}
+                                            </time>
+                                            ${
+                                                event.meetup
+                                                    ? `
+                                                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                                                    ${event.meetup}
+                                                </span>
+                                            `
+                                                    : ""
+                                            }
+                                        </div>
+                                        <div class="font-medium text-gray-800 mt-1">
+                                            ${event.title}
+                                        </div>
+                                        ${
+                                            event.speaker
+                                                ? `
+                                            <div class="text-sm text-gray-600 mt-1">
+                                                Par ${event.speaker}
+                                            </div>
+                                        `
+                                                : ""
+                                        }
+                                    </a>
+                                </li>
+                            `,
+                                )
+                                .join("");
+                        }
+                    }
+
+                    document
+                        .getElementById("prev-month")
+                        .addEventListener("click", () => {
+                            // Check if we can go back
+                            if (
+                                displayMonth === minMonth &&
+                                displayYear === minYear
+                            ) {
+                                return;
+                            }
+                            if (displayMonth === 0) {
+                                displayMonth = 11;
+                                displayYear--;
+                            } else {
+                                displayMonth--;
+                            }
+                            renderEvents();
+                        });
+
+                    document
+                        .getElementById("next-month")
+                        .addEventListener("click", () => {
+                            if (displayMonth === 11) {
+                                displayMonth = 0;
+                                displayYear++;
+                            } else {
+                                displayMonth++;
+                            }
+                            renderEvents();
+                        });
+
+                    // Initial render
+                    renderEvents();
+                </script>
             </div>
 
             <!-- Section Mailing List -->
