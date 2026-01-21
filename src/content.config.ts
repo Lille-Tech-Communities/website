@@ -2,7 +2,12 @@ import { glob } from "astro/loaders";
 import { getCollection, z } from "astro:content";
 import { defineCollection } from "astro:content";
 import puppeteer from "puppeteer";
-const meetups = ["edinburghjs"];
+
+const meetups: Record<string, string> = {
+  chtijug: "Ch'ti JUG",
+  reactbeerlille: "React Beer Lille",
+  "lille-aws-amazon-web-services-user-group": "Lille AWS User Group",
+};
 
 export async function getAllPosts(): Promise<MeetupEvent[]> {
   const markdownPosts = await getCollection("mdEvents");
@@ -22,6 +27,8 @@ const MarkdownEventSchema = z.object({
   link: z.string(),
   time: z.string().or(z.date()),
   endTime: z.string().or(z.date()).optional(),
+  meetup: z.string().optional(),
+  speaker: z.string().optional(),
 });
 
 const mdEvents = defineCollection({
@@ -37,6 +44,8 @@ const EventSchema = z.object({
       link: z.string(),
       time: z.string().or(z.date()),
       endTime: z.string().or(z.date()).optional(),
+      meetup: z.string().optional(),
+      speaker: z.string().optional(),
     }),
   ),
 });
@@ -44,66 +53,127 @@ export type MeetupEvent = Required<z.infer<typeof EventSchema>>;
 
 const events = defineCollection({
   loader: async () => {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-
-    async function scrapeMeetupEvents(meetup: string) {
-      const page = await browser.newPage();
-
-      await page.goto(`https://www.meetup.com/${meetup}/events/`, {
-        waitUntil: "domcontentloaded",
-        timeout: 60000,
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ],
+        protocolTimeout: 180000,
       });
 
-      try {
-        await page.waitForSelector(
-          'a[href^="https://www.meetup.com/' + meetup + '/events/"]',
-          {
-            timeout: 20000,
-          },
-        );
-      } catch (err) {
-        console.warn(
-          "⚠️ Aucun événement visible sur la page (ou chargement trop lent).",
-        );
-        await browser.close();
-        return [];
-      }
-      const events = await page.evaluate((meetup: string) => {
-        const cards = document.querySelectorAll(
-          'a[href^="https://www.meetup.com/' + meetup + '/events/"]',
-        );
+      async function scrapeMeetupEvents(
+        meetupSlug: string,
+        meetupName: string,
+      ): Promise<
+        { title: string; link: string; time: string; meetup: string }[]
+      > {
+        const page = await browser!.newPage();
 
-        return Array.from(cards)
-          .filter((card) => {
-            return !["Events", "List", "Calendar", "Upcoming"].includes(
-              (card as HTMLLinkElement).innerText?.trim(),
-            );
-          })
-          .map((card, i) => {
-            const title = card.querySelector("span")!.innerText.trim();
-            const time = card.querySelector("time")!.innerText.trim();
-            const link = (card as HTMLLinkElement).href;
+        try {
+          await page.setUserAgent(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          );
 
-            return { title, link, time };
+          await page.goto(`https://www.meetup.com/${meetupSlug}/events/`, {
+            waitUntil: "domcontentloaded",
+            timeout: 90000,
           });
-      }, meetup);
 
-      return events;
+          // Attendre que le contenu dynamique soit chargé
+          await page
+            .waitForFunction(
+              () => document.querySelectorAll("time").length > 0,
+              { timeout: 30000 },
+            )
+            .catch(() => {
+              console.log(
+                `⏳ Pas de time trouvé pour ${meetupSlug}, on continue...`,
+              );
+            });
+
+          const events = await page.evaluate(
+            (meetupSlug: string, meetupName: string) => {
+              const cards = document.querySelectorAll(
+                `a[href*="/${meetupSlug}/events/"]`,
+              );
+
+              return Array.from(cards)
+                .filter((card) => {
+                  const href = (card as HTMLLinkElement).href;
+                  const text = (card as HTMLLinkElement).innerText?.trim();
+                  // Filtrer les liens de navigation
+                  return (
+                    href.includes("/events/") &&
+                    !["Events", "List", "Calendar", "Upcoming", ""].includes(
+                      text,
+                    ) &&
+                    card.querySelector("time")
+                  );
+                })
+                .map((card) => {
+                  // Le titre est généralement dans le texte complet
+                  const fullText = (card as HTMLLinkElement).innerText || "";
+                  const lines = fullText
+                    .split("\n")
+                    .map((l) => l.trim())
+                    .filter((l) => l.length > 0);
+
+                  // Chercher le titre: ignorer les lignes avec "seats", dates, etc.
+                  let title = "";
+                  for (const line of lines) {
+                    if (
+                      line.length > 5 &&
+                      !line.toLowerCase().includes("seats") &&
+                      !line.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),/) &&
+                      !line.match(/^\d+\s+(attendee|going)/)
+                    ) {
+                      title = line;
+                      break;
+                    }
+                  }
+
+                  const timeElement = card.querySelector("time");
+                  let time = timeElement?.getAttribute("datetime") || "";
+                  time = time.replace(/\[.*\]$/, "");
+                  const link = (card as HTMLLinkElement).href;
+
+                  return { title, link, time, meetup: meetupName };
+                })
+                .filter((e) => e.title && e.time);
+            },
+            meetupSlug,
+            meetupName,
+          );
+
+          await page.close();
+          return events;
+        } catch (err) {
+          console.warn(`⚠️ Erreur scraping ${meetupSlug}:`, err);
+          await page.close().catch(() => {});
+          return [];
+        }
+      }
+
+      const data: MeetupEvent[] = [];
+      for (const [slug, name] of Object.entries(meetups)) {
+        console.log(`🔍 Scraping ${name}...`);
+        const scrapedEvents = await scrapeMeetupEvents(slug, name);
+        data.push({ id: slug, events: scrapedEvents });
+        console.log(`✅ ${name}:`, scrapedEvents.length, "événement(s)");
+      }
+
+      await browser.close();
+      return data;
+    } catch (err) {
+      console.error("❌ Erreur globale scraping:", err);
+      if (browser) await browser.close().catch(() => {});
+      return [];
     }
-
-    let data: MeetupEvent[] = [];
-    for (let i = 0; i < meetups.length; i++) {
-      const events = await scrapeMeetupEvents(meetups[i]);
-      data.push({ id: `${meetups[i]}`, events });
-      console.log(events);
-    }
-    await browser.close();
-
-    console.log(data);
-    return data;
   },
   schema: EventSchema,
 });
@@ -112,6 +182,7 @@ const MailingListSchema = z.object({
   title: z.string(),
   date: z.string().or(z.date()),
   description: z.string().optional(),
+  draft: z.boolean().default(false),
 });
 
 const mailinglists = defineCollection({
