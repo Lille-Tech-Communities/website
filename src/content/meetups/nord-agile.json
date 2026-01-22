@@ -2,5 +2,6 @@
   "href": "https://www.meetup.com/fr-FR/nord-agile/",
   "label": "Nord Agile",
   "slug": "nord-agile",
-  "platform": "meetup"
+  "platform": "meetup",
+  "community": true
 }

@@ -1,4 +1,5 @@
 {
   "href": "https://www.linkedin.com/company/meetup-postgresql-lille/",
-  "label": "Meetup PostgreSQL Lille"
+  "label": "Meetup PostgreSQL Lille",
+  "community": true
 }

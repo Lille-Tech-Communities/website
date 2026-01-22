@@ -1,0 +1,40 @@
+---
+interface Props {
+    meetups: Readonly<{ label: string; href: string; community?: boolean }[]>;
+}
+
+const { meetups } = Astro.props;
+
+const communityMeetups = meetups.filter((meetup) => meetup.community === true);
+---
+
+<section
+    class="bg-white rounded-2xl shadow-xl p-6"
+    aria-labelledby="communities-heading"
+>
+    <h2
+        id="communities-heading"
+        class="text-xl font-bold text-gray-800 mb-4 text-center"
+    >
+        Communautés
+    </h2>
+    <nav aria-label="Liste des communautés tech">
+        <ul class="space-y-4" role="list">
+            {
+                communityMeetups.map((meetup) => (
+                    <li>
+                        <a
+                            href={meetup.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Visiter la page de ${meetup.label} (nouvelle fenêtre)`}
+                            class="block w-full text-center px-4 py-3 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                        >
+                            {meetup.label}
+                        </a>
+                    </li>
+                ))
+            }
+        </ul>
+    </nav>
+</section>

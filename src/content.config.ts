@@ -226,24 +226,35 @@ const events = defineCollection({
                   );
                 })
                 .map((card) => {
-                  // Le titre est généralement dans le texte complet
-                  const fullText = (card as HTMLLinkElement).innerText || "";
-                  const lines = fullText
-                    .split("\n")
-                    .map((l) => l.trim())
-                    .filter((l) => l.length > 0);
+                  // Chercher le titre dans un élément spécifique (h2, h3, ou span avec classe titre)
+                  const titleElement = card.querySelector(
+                    "h2, h3, [data-testid='event-title'], [class*='title']",
+                  );
+                  let title = titleElement?.textContent?.trim() || "";
 
-                  // Chercher le titre: ignorer les lignes avec "seats", dates, etc.
-                  let title = "";
-                  for (const line of lines) {
-                    if (
-                      line.length > 5 &&
-                      !line.toLowerCase().includes("seats") &&
-                      !line.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),/) &&
-                      !line.match(/^\d+\s+(attendee|going)/)
-                    ) {
-                      title = line;
-                      break;
+                  // Si pas trouvé, fallback sur l'analyse des lignes
+                  if (!title) {
+                    const fullText = (card as HTMLLinkElement).innerText || "";
+                    const lines = fullText
+                      .split("\n")
+                      .map((l) => l.trim())
+                      .filter((l) => l.length > 0);
+
+                    // Chercher le titre: ignorer les lignes avec "seats", dates, "Waiting List", etc.
+                    for (const line of lines) {
+                      if (
+                        line.length > 5 &&
+                        !line.toLowerCase().includes("seats") &&
+                        !line.toLowerCase().includes("waiting list") &&
+                        !line.toLowerCase().includes("liste d'attente") &&
+                        !line.toLowerCase().includes("spots left") &&
+                        !line.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),/) &&
+                        !line.match(/^(Lun|Mar|Mer|Jeu|Ven|Sam|Dim)\.?,/) &&
+                        !line.match(/^\d+\s+(attendee|going|participant)/)
+                      ) {
+                        title = line;
+                        break;
+                      }
                     }
                   }
 
@@ -340,6 +351,7 @@ const MeetupLinkSchema = z.object({
   slug: z.string().optional(),
   platform: z.enum(["meetup", "mobilizon"]).optional(),
   mobilizonUrl: z.string().optional(),
+  community: z.boolean().default(false),
 });
 
 const meetupsLinks = defineCollection({

@@ -2,5 +2,6 @@
   "href": "https://www.meetup.com/fr-FR/software-craftsmanship-lille/",
   "label": "Software Craftsmanship Lille",
   "slug": "software-craftsmanship-lille",
-  "platform": "meetup"
+  "platform": "meetup",
+  "community": true
 }
