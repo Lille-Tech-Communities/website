@@ -7,6 +7,7 @@ const meetups: Record<string, string> = {
   "software-craftsmanship-lille": "Software Craftsmanship Lille",
   chtijug: "Ch'ti JUG",
   reactbeerlille: "React Beer Lille",
+  "nord-agile": "Nord Agile",
   "lille-aws-amazon-web-services-user-group": "Lille AWS User Group",
 };
 
