@@ -38,48 +38,10 @@ const sortedEvents = allEvents.sort(
     (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
 );
 
-const meetups = [
-    {
-        href: "https://www.meetup.com/fr-FR/mtg-lille/",
-        label: "MTG",
-    },
-    {
-        href: "https://www.meetup.com/fr-FR/devops-lille/",
-        label: "DevOps Lille",
-    },
-    {
-        href: "https://www.meetup.com/fr-FR/chtijug/",
-        label: "Ch'ti JUG",
-    },
-    {
-        href: "https://www.linkedin.com/company/chtitedev/",
-        label: "Chtitedev",
-    },
-    {
-        href: "https://www.meetup.com/fr-FR/Lille-Big-Data-and-Machine-Learning-Meetup/",
-        label: "Data Lille",
-    },
-    {
-        href: "https://linktr.ee/frontendbeers",
-        label: "Frontendbeers",
-    },
-    {
-        href: "https://www.linkedin.com/company/software-craft-lille/",
-        label: "Software Craft Lille",
-    },
-    {
-        href: "https://www.linkedin.com/company/meetup-postgresql-lille/",
-        label: "Meetup PostgreSQL Lille",
-    },
-    {
-        href: "https://www.meetup.com/fr-fr/lille-android-user-group/",
-        label: "Lille Android User Group",
-    },
-    {
-        href: "https://www.meetup.com/fr-FR/networking-it-reseau-et-opportunite-data-cloud-dev-etc/",
-        label: "IT-Club",
-    },
-];
+const meetupsCollection = await getCollection("meetups");
+const meetups = meetupsCollection
+    .map((m) => m.data)
+    .sort((a, b) => a.label.localeCompare(b.label));
 ---
 
 <Layout>

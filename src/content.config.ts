@@ -2,18 +2,27 @@ import { glob } from "astro/loaders";
 import { getCollection, z } from "astro:content";
 import { defineCollection } from "astro:content";
 import puppeteer from "puppeteer";
+import fs from "node:fs";
+import path from "node:path";
 
-const meetups: Record<string, string> = {
-  "software-craftsmanship-lille": "Software Craftsmanship Lille",
-  chtijug: "Ch'ti JUG",
-  reactbeerlille: "React Beer Lille",
-  "nord-agile": "Nord Agile",
-  "lille-aws-amazon-web-services-user-group": "Lille AWS User Group",
+type MeetupData = {
+  href: string;
+  label: string;
+  slug?: string;
+  platform?: "meetup" | "mobilizon";
+  mobilizonUrl?: string;
 };
 
-const mobilizonGroups: { url: string; name: string }[] = [
-  { url: "https://mobilizon.fr/@chtitedev", name: "Ch'tite Dev" },
-];
+function loadMeetupsFromFiles(): MeetupData[] {
+  const meetupsDir = "./src/content/meetups";
+  const meetupFiles = fs
+    .readdirSync(meetupsDir)
+    .filter((f: string) => f.endsWith(".json"));
+  return meetupFiles.map((file: string) => {
+    const content = fs.readFileSync(path.join(meetupsDir, file), "utf-8");
+    return JSON.parse(content) as MeetupData;
+  });
+}
 
 export async function getAllPosts(): Promise<MeetupEvent[]> {
   const markdownPosts = await getCollection("mdEvents");
@@ -261,26 +270,42 @@ const events = defineCollection({
       }
 
       const data: MeetupEvent[] = [];
-      for (const [slug, name] of Object.entries(meetups)) {
-        console.log(`🔍 Scraping ${name}...`);
-        const scrapedEvents = await scrapeMeetupEvents(slug, name);
-        data.push({ id: slug, events: scrapedEvents });
-        console.log(`✅ ${name}:`, scrapedEvents.length, "événement(s)");
+      const allMeetups = loadMeetupsFromFiles();
+
+      // Scrape Meetup.com events
+      const meetupGroups = allMeetups.filter(
+        (m) => m.platform === "meetup" && m.slug,
+      );
+      for (const meetup of meetupGroups) {
+        console.log(`🔍 Scraping ${meetup.label}...`);
+        const scrapedEvents = await scrapeMeetupEvents(
+          meetup.slug!,
+          meetup.label,
+        );
+        data.push({ id: meetup.slug!, events: scrapedEvents });
+        console.log(
+          `✅ ${meetup.label}:`,
+          scrapedEvents.length,
+          "événement(s)",
+        );
       }
 
-      // Scrape Mobilizon events (using the same browser)
+      // Scrape Mobilizon events
+      const mobilizonGroups = allMeetups.filter(
+        (m) => m.platform === "mobilizon" && m.mobilizonUrl,
+      );
       for (const group of mobilizonGroups) {
-        console.log(`🔍 Scraping Mobilizon ${group.name}...`);
+        console.log(`🔍 Scraping Mobilizon ${group.label}...`);
         const mobilizonEvents = await scrapeMobilizonEvents(
           browser,
-          group.url,
-          group.name,
+          group.mobilizonUrl!,
+          group.label,
         );
         const groupId =
-          group.url.split("/").pop()?.replace("@", "") || group.name;
+          group.mobilizonUrl!.split("/").pop()?.replace("@", "") || group.label;
         data.push({ id: `mobilizon-${groupId}`, events: mobilizonEvents });
         console.log(
-          `✅ ${group.name}:`,
+          `✅ ${group.label}:`,
           mobilizonEvents.length,
           "événement(s)",
         );
@@ -309,4 +334,22 @@ const mailinglists = defineCollection({
   schema: MailingListSchema,
 });
 
-export const collections = { events, mdEvents, mailinglists };
+const MeetupLinkSchema = z.object({
+  href: z.string(),
+  label: z.string(),
+  slug: z.string().optional(),
+  platform: z.enum(["meetup", "mobilizon"]).optional(),
+  mobilizonUrl: z.string().optional(),
+});
+
+const meetupsLinks = defineCollection({
+  loader: glob({ pattern: "**/*.json", base: "./src/content/meetups" }),
+  schema: MeetupLinkSchema,
+});
+
+export const collections = {
+  events,
+  mdEvents,
+  mailinglists,
+  meetups: meetupsLinks,
+};
