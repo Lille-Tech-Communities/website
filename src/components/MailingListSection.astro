@@ -23,14 +23,14 @@ const { mailinglists } = Astro.props;
         id="mailinglist-heading"
         class="text-xl font-bold text-gray-800 mb-4 text-center"
     >
-        Mailing List
+        Newsletters
     </h2>
     {
         mailinglists.length > 0 ? (
             <ul
                 class="space-y-3 text-left"
                 role="list"
-                aria-label="Dernières mailing lists"
+                aria-label="Dernières newsletters"
             >
                 {mailinglists.map((mail) => (
                     <li>
@@ -68,16 +68,16 @@ const { mailinglists } = Astro.props;
             </ul>
         ) : (
             <p class="text-gray-500 text-center">
-                Aucune mailing list pour le moment
+                Aucune newsletter pour le moment
             </p>
         )
     }
     <a
         href="/mailinglists"
         class="inline-block mt-4 text-gray-600 hover:text-gray-800 font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        aria-label="Voir toutes les mailing lists"
+        aria-label="Voir toutes les newsletters"
     >
-        Voir toutes les mailing lists{" "}
+        Voir toutes les newsletters{" "}
         <span aria-hidden="true">&rarr;</span>
     </a>
 </section>
