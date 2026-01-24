@@ -11,6 +11,7 @@ type MeetupData = {
   slug?: string;
   platform?: "meetup" | "mobilizon";
   mobilizonUrl?: string;
+  filter?: string;
 };
 
 function loadMeetupsFromFiles(): MeetupData[] {
@@ -289,10 +290,17 @@ const events = defineCollection({
       );
       for (const meetup of meetupGroups) {
         console.log(`🔍 Scraping ${meetup.label}...`);
-        const scrapedEvents = await scrapeMeetupEvents(
+        let scrapedEvents = await scrapeMeetupEvents(
           meetup.slug!,
           meetup.label,
         );
+        if (meetup.filter) {
+          const filterRegex = new RegExp(meetup.filter, "i");
+          scrapedEvents = scrapedEvents.filter((e) =>
+            filterRegex.test(e.title),
+          );
+          console.log(`🔎 Filtre "${meetup.filter}" appliqué`);
+        }
         data.push({ id: meetup.slug!, events: scrapedEvents });
         console.log(
           `✅ ${meetup.label}:`,
@@ -352,6 +360,7 @@ const MeetupLinkSchema = z.object({
   platform: z.enum(["meetup", "mobilizon"]).optional(),
   mobilizonUrl: z.string().optional(),
   community: z.boolean().default(false),
+  filter: z.string().optional(),
 });
 
 const meetupsLinks = defineCollection({
