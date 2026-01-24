@@ -359,9 +359,20 @@ const meetupsLinks = defineCollection({
   schema: MeetupLinkSchema,
 });
 
+const RssFeedSchema = z.object({
+  name: z.string(),
+  url: z.string().url(),
+});
+
+const rssfeeds = defineCollection({
+  loader: glob({ pattern: "**/*.json", base: "./src/content/rssfeeds" }),
+  schema: RssFeedSchema,
+});
+
 export const collections = {
   events,
   mdEvents,
   mailinglists,
   meetups: meetupsLinks,
+  rssfeeds,
 };
