@@ -9,8 +9,9 @@ type MeetupData = {
   href: string;
   label: string;
   slug?: string;
-  platform?: "meetup" | "mobilizon";
+  platform?: "meetup" | "mobilizon" | "luma" | "sfeir";
   mobilizonUrl?: string;
+  lumaCalendarId?: string;
   filter?: string;
 };
 
@@ -157,6 +158,176 @@ async function scrapeMobilizonEvents(
     return events;
   } catch (err) {
     console.warn(`⚠️ Erreur scraping Mobilizon ${groupName}:`, err);
+    await page.close().catch(() => {});
+    return [];
+  }
+}
+
+async function scrapeLumaEvents(
+  calendarId: string,
+  groupName: string,
+): Promise<
+  {
+    title: string;
+    link: string;
+    time: string;
+    endTime: string;
+    meetup: string;
+  }[]
+> {
+  try {
+    const response = await fetch(
+      `https://api.lu.ma/calendar/get-items?calendar_api_id=${calendarId}`,
+    );
+    const data = await response.json();
+    const entries = data.entries || [];
+
+    return entries.map(
+      (entry: {
+        event: {
+          name: string;
+          url: string;
+          start_at: string;
+          end_at: string;
+        };
+      }) => ({
+        title: entry.event.name,
+        link: `https://lu.ma/${entry.event.url}`,
+        time: entry.event.start_at,
+        endTime: entry.event.end_at,
+        meetup: groupName,
+      }),
+    );
+  } catch (err) {
+    console.warn(`⚠️ Erreur scraping Luma ${groupName}:`, err);
+    return [];
+  }
+}
+
+const FRENCH_MONTHS: Record<string, string> = {
+  JAN: "01",
+  FEV: "02",
+  MAR: "03",
+  AVR: "04",
+  MAI: "05",
+  JUI: "06",
+  JUIL: "07",
+  AOU: "08",
+  SEP: "09",
+  OCT: "10",
+  NOV: "11",
+  DEC: "12",
+};
+
+async function scrapeSfeirEvents(
+  browser: Awaited<ReturnType<typeof puppeteer.launch>>,
+  groupName: string,
+): Promise<
+  {
+    title: string;
+    link: string;
+    time: string;
+    meetup: string;
+    location: string;
+  }[]
+> {
+  const page = await browser.newPage();
+
+  try {
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    );
+
+    await page.goto("https://sfeir.com/pages/evenements.html", {
+      waitUntil: "domcontentloaded",
+      timeout: 90000,
+    });
+
+    await page.waitForSelector(".card", { timeout: 30000 }).catch(() => {
+      console.log(
+        `⏳ Pas de cartes trouvées pour ${groupName}, on continue...`,
+      );
+    });
+
+    const events = await page.evaluate((groupName: string) => {
+      // Ne cibler que la section "Événements à venir"
+      const sections = document.querySelectorAll("section");
+      let upcomingSection: Element | null = null;
+      for (const section of sections) {
+        const heading = section.querySelector("h2");
+        if (heading?.textContent?.includes("à venir")) {
+          upcomingSection = section;
+          break;
+        }
+      }
+
+      if (!upcomingSection) return [];
+
+      const cards = upcomingSection.querySelectorAll(".card");
+      const results: {
+        title: string;
+        link: string;
+        monthAbbr: string;
+        day: string;
+        meetup: string;
+        location: string;
+      }[] = [];
+
+      cards.forEach((card) => {
+        const title = card.querySelector("h3")?.textContent?.trim() || "";
+        const linkEl = card.querySelector(
+          'a[href*="/pages/event-"]',
+        ) as HTMLAnchorElement | null;
+        const link = linkEl
+          ? `https://sfeir.com${linkEl.getAttribute("href")}`
+          : "";
+        const monthEl = card.querySelector(".text-sm.font-semibold");
+        const dayEl = card.querySelector(".text-xl.font-bold");
+        const monthAbbr = monthEl?.textContent?.trim() || "";
+        const day = dayEl?.textContent?.trim().split("-")[0] || "";
+        const locationEl = card.querySelector(".text-sm.text-gray-500");
+        const location = locationEl?.textContent?.trim() || "";
+
+        if (title && link && monthAbbr && day) {
+          results.push({
+            title,
+            link,
+            monthAbbr,
+            day,
+            meetup: groupName,
+            location,
+          });
+        }
+      });
+
+      return results;
+    }, groupName);
+
+    await page.close();
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    return events.map((e) => {
+      const monthNum = FRENCH_MONTHS[e.monthAbbr.toUpperCase()] || "01";
+      let date = new Date(
+        `${currentYear}-${monthNum}-${e.day.padStart(2, "0")}T00:00:00`,
+      );
+      if (date < now) {
+        date = new Date(
+          `${currentYear + 1}-${monthNum}-${e.day.padStart(2, "0")}T00:00:00`,
+        );
+      }
+      return {
+        title: e.title,
+        link: e.link,
+        time: date.toISOString(),
+        meetup: e.meetup,
+        location: e.location,
+      };
+    });
+  } catch (err) {
+    console.warn(`⚠️ Erreur scraping SFEIR ${groupName}:`, err);
     await page.close().catch(() => {});
     return [];
   }
@@ -330,6 +501,42 @@ const events = defineCollection({
         );
       }
 
+      // Scrape Luma events
+      const lumaGroups = allMeetups.filter(
+        (m) => m.platform === "luma" && m.lumaCalendarId,
+      );
+      for (const group of lumaGroups) {
+        console.log(`🔍 Scraping Luma ${group.label}...`);
+        let lumaEvents = await scrapeLumaEvents(
+          group.lumaCalendarId!,
+          group.label,
+        );
+        if (group.filter) {
+          const filterRegex = new RegExp(group.filter, "i");
+          lumaEvents = lumaEvents.filter((e) => filterRegex.test(e.title));
+          console.log(`🔎 Filtre "${group.filter}" appliqué`);
+        }
+        data.push({ id: `luma-${group.lumaCalendarId}`, events: lumaEvents });
+        console.log(`✅ ${group.label}:`, lumaEvents.length, "événement(s)");
+      }
+
+      // Scrape SFEIR events
+      const sfeirGroups = allMeetups.filter((m) => m.platform === "sfeir");
+      for (const group of sfeirGroups) {
+        console.log(`🔍 Scraping SFEIR ${group.label}...`);
+        let sfeirEvents = await scrapeSfeirEvents(browser, group.label);
+        if (group.filter) {
+          const filterRegex = new RegExp(group.filter, "i");
+          sfeirEvents = sfeirEvents.filter((e) => filterRegex.test(e.location));
+          console.log(`🔎 Filtre "${group.filter}" appliqué sur le lieu`);
+        }
+        data.push({
+          id: `sfeir-${group.label.toLowerCase().replace(/\s+/g, "-")}`,
+          events: sfeirEvents,
+        });
+        console.log(`✅ ${group.label}:`, sfeirEvents.length, "événement(s)");
+      }
+
       await browser.close();
       return data;
     } catch (err) {
@@ -357,8 +564,9 @@ const MeetupLinkSchema = z.object({
   href: z.string(),
   label: z.string(),
   slug: z.string().optional(),
-  platform: z.enum(["meetup", "mobilizon"]).optional(),
+  platform: z.enum(["meetup", "mobilizon", "luma", "sfeir"]).optional(),
   mobilizonUrl: z.string().optional(),
+  lumaCalendarId: z.string().optional(),
   community: z.boolean().default(false),
   filter: z.string().optional(),
 });
