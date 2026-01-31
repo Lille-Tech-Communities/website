@@ -586,10 +586,22 @@ const rssfeeds = defineCollection({
   schema: RssFeedSchema,
 });
 
+const BlogSchema = z.object({
+  name: z.string(),
+  url: z.string().url(),
+  rss: z.string().url(),
+});
+
+const blogs = defineCollection({
+  loader: glob({ pattern: "**/*.json", base: "./src/content/blogs" }),
+  schema: BlogSchema,
+});
+
 export const collections = {
   events,
   mdEvents,
   mailinglists,
   meetups: meetupsLinks,
   rssfeeds,
+  blogs,
 };
