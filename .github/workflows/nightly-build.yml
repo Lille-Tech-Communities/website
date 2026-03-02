@@ -1,0 +1,22 @@
+name: Nightly Netlify Build
+
+on:
+  schedule:
+    # Exécute tous les jours à 2h00 du matin (UTC)
+    # Pour ajuster l'heure, modifier les valeurs (minute heure * * *)
+    - cron: '0 2 * * *'
+
+  # Permet de déclencher manuellement le workflow depuis l'interface GitHub
+  workflow_dispatch:
+
+jobs:
+  trigger-netlify-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Netlify Build
+        run: |
+          curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK }}
+
+      - name: Build triggered
+        run: echo "Netlify build has been triggered successfully"
