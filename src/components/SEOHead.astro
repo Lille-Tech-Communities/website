@@ -1,0 +1,42 @@
+---
+interface Props {
+    readonly title?: string;
+    readonly description?: string;
+    readonly image?: string;
+    readonly url?: string;
+    readonly type?: "website" | "article";
+}
+
+const {
+    title = "Agile & Tech Community",
+    description = "Agile & Tech Community - Les communautés tech de la métropole lilloise. Retrouvez tous les meetups, événements et la mailing list de la communauté.",
+    image = "/logo.jpeg",
+    url = "https://lille-tech-communities.netlify.app",
+    type = "website",
+} = Astro.props;
+
+const fullImageUrl = new URL(image, url).toString();
+const canonicalURL = new URL(Astro.url.pathname, url).toString();
+---
+
+<!-- Primary Meta Tags -->
+<title>{title}</title>
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={fullImageUrl} />
+<meta property="og:locale" content="fr_FR" />
+<meta property="og:site_name" content="Lille Tech Communities" />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content={canonicalURL} />
+<meta property="twitter:title" content={title} />
+<meta property="twitter:description" content={description} />
+<meta property="twitter:image" content={fullImageUrl} />

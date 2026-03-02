@@ -1,5 +1,15 @@
 ---
 import "../assets/global.css";
+import SEOHead from "../components/SEOHead.astro";
+
+interface Props {
+    readonly title?: string;
+    readonly description?: string;
+    readonly image?: string;
+    readonly type?: "website" | "article";
+}
+
+const { title, description, image, type } = Astro.props;
 ---
 
 <!doctype html>
@@ -9,11 +19,12 @@ import "../assets/global.css";
         <meta name="viewport" content="width=device-width" />
         <link rel="icon" type="image/jpeg" href="/logo.jpeg" />
         <meta name="generator" content={Astro.generator} />
-        <meta
-            name="description"
-            content="Agile & Tech Community - Les communautés tech de la métropole lilloise. Retrouvez tous les meetups, événements et la mailing list de la communauté."
+        <SEOHead
+            title={title}
+            description={description}
+            image={image}
+            type={type}
         />
-        <title>Agile & Tech Community</title>
     </head>
     <body class="min-h-screen flex flex-col">
         <a

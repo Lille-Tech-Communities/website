@@ -1,0 +1,80 @@
+---
+interface Event {
+    name: string;
+    time: string;
+    location: string;
+    link: string;
+    community?: string;
+}
+
+interface Props {
+    readonly events?: Event[];
+}
+
+const { events = [] } = Astro.props;
+
+const baseUrl = "https://lille-tech-communities.netlify.app";
+
+// Organization Schema
+const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Lille Tech Communities",
+    url: baseUrl,
+    logo: `${baseUrl}/logo.jpeg`,
+    description:
+        "Les communautés tech de la métropole lilloise. Retrouvez tous les meetups, événements et la mailing list de la communauté.",
+    address: {
+        "@type": "PostalAddress",
+        addressLocality: "Lille",
+        addressRegion: "Hauts-de-France",
+        addressCountry: "FR",
+    },
+};
+
+// Events Schema
+const eventsSchema = events
+    .filter((event) => new Date(event.time) > new Date()) // Only future events
+    .slice(0, 20) // Limit to 20 events
+    .map((event) => ({
+        "@context": "https://schema.org",
+        "@type": "Event",
+        name: event.name,
+        startDate: new Date(event.time).toISOString(),
+        location: {
+            "@type": "Place",
+            name: event.location,
+            address: {
+                "@type": "PostalAddress",
+                addressLocality: "Lille",
+                addressRegion: "Hauts-de-France",
+                addressCountry: "FR",
+            },
+        },
+        url: event.link,
+        organizer: event.community
+            ? {
+                  "@type": "Organization",
+                  name: event.community,
+                  url: baseUrl,
+              }
+            : organizationSchema,
+        eventStatus: "https://schema.org/EventScheduled",
+        eventAttendanceMode: "https://schema.org/MixedEventAttendanceMode",
+    }));
+
+// WebSite Schema for search
+const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Lille Tech Communities",
+    url: baseUrl,
+    description:
+        "Agile & Tech Community - Les communautés tech de la métropole lilloise",
+    inLanguage: "fr-FR",
+};
+
+const schemas = [organizationSchema, websiteSchema, ...eventsSchema];
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schemas)} />

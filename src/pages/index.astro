@@ -4,6 +4,7 @@ import Header from "../components/Header.astro";
 import MeetupsList from "../components/MeetupsList.astro";
 import EventsSection from "../components/EventsSection.astro";
 import MailingListSection from "../components/MailingListSection.astro";
+import StructuredData from "../components/StructuredData.astro";
 import { getCollection } from "astro:content";
 
 const mailinglists = await getCollection("mailinglists");
@@ -49,6 +50,7 @@ const meetups = meetupsCollection
 ---
 
 <Layout>
+    <StructuredData events={sortedEvents} />
     <div
         class="via-white to-pink-100 min-h-screen flex items-center justify-center p-4"
     >
