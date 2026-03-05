@@ -1,0 +1,35 @@
+name: Deploy to CleverCloud
+
+on:
+  workflow_call:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy dist to CleverCloud
+        run: |
+          cd dist
+          git init
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add .
+          git commit -m "Deploy $(git -C .. rev-parse --short HEAD)"
+          git remote add clevercloud ${{ secrets.CLEVER_CLOUD_GIT_URL }}
+          git push clevercloud master --force

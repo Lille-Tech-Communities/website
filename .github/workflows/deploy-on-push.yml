@@ -1,7 +1,9 @@
-name: Manual CleverCloud Deploy
+name: Deploy on push
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   deploy:
