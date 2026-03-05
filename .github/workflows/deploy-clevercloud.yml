@@ -30,4 +30,5 @@ jobs:
         env:
           CLEVER_TOKEN: ${{ secrets.CLEVER_TOKEN }}
           CLEVER_SECRET: ${{ secrets.CLEVER_SECRET }}
-        run: clever deploy --app ${{ secrets.CLEVER_APP_ID }}
+          CLEVER_APP: ${{ secrets.CLEVER_APP_ID }}
+        run: clever deploy --force
