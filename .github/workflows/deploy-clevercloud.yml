@@ -19,12 +19,6 @@ jobs:
           node-version: lts/*
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
       - name: Install CleverCloud CLI
         run: npm install -g clever-tools
 
