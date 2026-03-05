@@ -23,6 +23,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.CLEVER_CLOUD_SSH_KEY }}
+
+      - name: Add CleverCloud to known hosts
+        run: ssh-keyscan -H push-n1-par-clevercloud-customers.services.clever-cloud.com >> ~/.ssh/known_hosts
+
       - name: Deploy dist to CleverCloud
         run: |
           cd dist
