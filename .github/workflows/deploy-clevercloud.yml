@@ -23,21 +23,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.CLEVER_CLOUD_SSH_KEY }}
+      - name: Install CleverCloud CLI
+        run: npm install -g clever-tools
 
-      - name: Add CleverCloud to known hosts
-        run: ssh-keyscan -H push-n1-par-clevercloud-customers.services.clever-cloud.com >> ~/.ssh/known_hosts
-
-      - name: Deploy dist to CleverCloud
-        run: |
-          cd dist
-          git init
-          git config user.email "github-actions@github.com"
-          git config user.name "GitHub Actions"
-          git add .
-          git commit -m "Deploy $(git -C .. rev-parse --short HEAD)"
-          git remote add clevercloud ${{ secrets.CLEVER_CLOUD_GIT_URL }}
-          git push clevercloud master --force
+      - name: Deploy to CleverCloud
+        env:
+          CLEVER_TOKEN: ${{ secrets.CLEVER_TOKEN }}
+          CLEVER_SECRET: ${{ secrets.CLEVER_SECRET }}
+        run: clever deploy --app ${{ secrets.CLEVER_APP_ID }}
