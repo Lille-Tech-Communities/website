@@ -1,5 +1,7 @@
 {
-  "href": "https://www.linkedin.com/company/meetup-postgresql-lille/",
+  "href": "https://www.meetup.com/fr-fr/meetup-postgresql-lille/",
+  "platform": "meetup",
+  "slug": "meetup-postgresql-lille",
   "label": "Meetup PostgreSQL Lille",
   "community": true
 }
