@@ -578,7 +578,7 @@ const meetupsLinks = defineCollection({
 
 const RssFeedSchema = z.object({
   name: z.string(),
-  url: z.string().url(),
+  url: z.url(),
 });
 
 const rssfeeds = defineCollection({
@@ -588,8 +588,8 @@ const rssfeeds = defineCollection({
 
 const BlogSchema = z.object({
   name: z.string(),
-  url: z.string().url(),
-  rss: z.string().url(),
+  url: z.url(),
+  rss: z.url(),
 });
 
 const blogs = defineCollection({

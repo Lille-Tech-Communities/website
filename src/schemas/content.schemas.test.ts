@@ -31,13 +31,13 @@ const MeetupLinkSchema = z.object({
 
 const RssFeedSchema = z.object({
   name: z.string(),
-  url: z.string().url(),
+  url: z.url(),
 });
 
 const BlogSchema = z.object({
   name: z.string(),
-  url: z.string().url(),
-  rss: z.string().url(),
+  url: z.url(),
+  rss: z.url(),
 });
 
 describe("Content Schemas", () => {
